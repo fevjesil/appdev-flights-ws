@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:american-flights-api="http://www.mulesoft.org/schema/mule/american-flights-api" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/american-flights-api http://www.mulesoft.org/schema/mule/american-flights-api/current/mule-american-flights-api.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+	<configuration-properties doc:name="Configuration properties" doc:id="f751325e-9753-4bb8-b7c6-c90a818486b3" file="config.yaml" />
+	<american-flights-api:config name="American_Flights_API_Config" doc:name="American Flights API Config" doc:id="cfadf455-132e-4bfe-b89f-d12549c03227" property_host="${american.host}" property_port="${american.port}" property_protocol="${american.protocol}" property_basePath="${american.basebath}" />
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="b3508be2-a8d8-4166-bba8-1add75173ca5" basePath="${training.basepath}" >
+		<http:request-connection host="${training.host}" port="${training.port}" />
+	</http:request-config>
+	<wsc:config name="Web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="9b1107c2-145c-41fb-90b7-2b016b7dee83" >
+		<wsc:connection wsdlLocation="${delta.wsdl}" service="${delta.service}" port="${delta.port}" >
+			<wsc:web-service-security actor="http://schemas.xmlsoap.org/soap/actor/next" />
+		</wsc:connection>
+	</wsc:config>
+	<configuration doc:name="Configuration" doc:id="4856ce82-aecb-4a7d-96cd-ee016efe5c70" defaultErrorHandler-ref="global.configError_Handler" />
+	<api-gateway:autodiscovery apiId="18340126" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="beac5095-8771-4bf3-842e-8328864a889d" flowRef="mua-flights-api-2-main" />
+	<error-handler name="global.configError_Handler" doc:id="dc4ebecd-0399-46a2-96c7-575216be14e7" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0df8c646-1e6d-4188-b77b-45e054296fec" type="AMERICAN-FLIGHTS-API:CONNECTIVITY">
+			<ee:transform doc:name="Transform Message" doc:id="17552929-4ae9-40a5-a251-981ffd9cd1bc">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	errorMessageUnautorized:  error.description,
+	errorType: error.errorType.identifier,
+	errorType: error.errorType.namespace,
+	ErrorDetaail: error.detailedDescription,
+	error: error.failingComponent
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8a42b74b-287e-4051-b911-5e11a6aa37b3" type="ANY">
+			<ee:transform doc:name="Transform Message" doc:id="3e010699-ef76-4d6a-bb2a-d3dafcfedd2d" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	errorMessage:  error.description,
+	errorType: error.errorType.identifier,
+	errorType: error.errorType.namespace,
+	ErrorDetaail: error.detailedDescription,
+	error: error.failingComponent
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-continue>
+	</error-handler>
+</mule>
